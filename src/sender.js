@@ -14,7 +14,10 @@ let dataSize = 0;
 const PINGAMOUNT = 100;
 let rttData = []
 let data = {"id": 10, "client": "asjhdsd_asjdhwd"}
-
+let avgRPCData = [];
+let stdRPCData = [];
+let avgEventData = [];
+let stdEventData = [];
 
 let data1 = {
     "name":"John",
@@ -25,6 +28,29 @@ let data1 = {
         "car3":"Fiat"
     }
  } 
+
+function avg(data)
+{
+  let avgi = 0;
+  for(let i = 0;i<data.length; i += 1)
+  {
+    avgi += data[i]; 
+  }
+  return avgi / data.length;
+}
+
+function std(data, avgi)
+{
+  if(avgi === undefined)
+    avgi = avg(data);
+  let stdi = 0;
+  for(let i = 0;i<data.length; i += 1)
+  {
+    stdi += (data[i]-avgi)*(data[i]-avgi); 
+  }
+  return stdi / data.length;
+  
+}
 
 function writeToFile(data, filename)
 {
@@ -75,15 +101,27 @@ function sendPing()
   {
     count = 0;
     if(usingRpc)
+    {
+      avgRPCData.push(avg(rttData));
+      stdRPCData.push(std(rttData));
       writeToFile(rttData, `rpc_${dataSize}`);
+    }
     else
+    {
+      avgEventData.push(avg(rttData));
+      stdEventData.push(std(rttData));
       writeToFile(rttData, `event_${dataSize}`);
+    }
     usingRpc = !usingRpc;
     rttData = [];
     if(usingRpc)
       dataSize += 1;
     if(dataSize >= 100)
     {
+      writeToFile(avgRPCData,"rpc_avg");
+      writeToFile(stdRPCData,"rpc_std");
+      writeToFile(avgEventData,"event_avg");
+      writeToFile(stdEventData,"event_std");
       console.log("done") 
       return;
     }
