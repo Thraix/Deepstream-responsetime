@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "private": false,
   "dependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.0",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-plugin-transform-es2015-classes": "^6.24.1",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
     "deepstream.io": "^3.1.1",
     "deepstream.io-client-js": "^2.3.0",
     "express": "^4.16.3",
@@ -10,8 +16,9 @@
     "performance-now": "^2.1.0"
   },
   "scripts": {
-    "server": "node src/server.js",
-    "sender": "node src/sender.js",
-    "receiver": "node src/receiver.js"
+    "server": "yarn build && node build/server.js",
+    "sender": "yarn build && node build/sender.js",
+    "receiver": "yarn build && node build/receiver.js",
+    "build": "babel src -d build"
   }
 }

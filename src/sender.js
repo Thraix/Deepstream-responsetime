@@ -1,7 +1,8 @@
 let express = require('express');
+import settings from  "./config";
 let now = require('performance-now');
 let fs = require('fs');
-deepstream = require('deepstream.io-client-js');
+let deepstream = require('deepstream.io-client-js');
 
 let client;
 let currentTime;
@@ -11,9 +12,10 @@ let usingRpc = true;
 let count = 0;
 let intervalId;
 let dataSize = 0;
+const DATASCALE = 10;
+const ITERATIONS = 100;
 const PINGAMOUNT = 100;
 let rttData = []
-let data = {"id": 10, "client": "asjhdsd_asjdhwd"}
 let avgRPCData = [];
 let stdRPCData = [];
 let avgEventData = [];
@@ -28,6 +30,8 @@ let data1 = {
         "car3":"Fiat"
     }
  } 
+
+let dataBuffer = [];
 
 function avg(data)
 {
@@ -48,7 +52,7 @@ function std(data, avgi)
   {
     stdi += (data[i]-avgi)*(data[i]-avgi); 
   }
-  return stdi / data.length;
+  return Math.sqrt(stdi / (data.length-1));
   
 }
 
@@ -74,7 +78,7 @@ function sendPingViaRPCMessage(data)
   // Set state to waiting for response.
   state = 1;
   currentTime = now(); 
-  client.rpc.make('receiver/rpc',data, pingReceived); 
+  client.rpc.make('tddd96client/receiver/rpc',data, pingReceived); 
 }
 
 function sendPingViaEvent(data)
@@ -82,17 +86,7 @@ function sendPingViaEvent(data)
   while(state !== 0){}
   state = 1;
   currentTime = now(); 
-  client.event.emit('receiver/event',data);
-}
-
-function calcDataSize()
-{
-  let data = [];
-  for(let i = 0; i < dataSize;i+=1)
-  {
-    data.push(data1);
-  }
-  return data;
+  client.event.emit('tddd96client/receiver/event',data);
 }
 
 function sendPing()
@@ -104,45 +98,53 @@ function sendPing()
     {
       avgRPCData.push(avg(rttData));
       stdRPCData.push(std(rttData));
-      writeToFile(rttData, `rpc_${dataSize}`);
+      writeToFile(rttData, `raw/rpc_${dataSize}`);
     }
     else
     {
       avgEventData.push(avg(rttData));
       stdEventData.push(std(rttData));
-      writeToFile(rttData, `event_${dataSize}`);
+      writeToFile(rttData, `raw/event_${dataSize}`);
     }
     usingRpc = !usingRpc;
     rttData = [];
     if(usingRpc)
-      dataSize += 1;
-    if(dataSize >= 100)
     {
-      writeToFile(avgRPCData,"rpc_avg");
-      writeToFile(stdRPCData,"rpc_std");
-      writeToFile(avgEventData,"event_avg");
-      writeToFile(stdEventData,"event_std");
-      console.log("done") 
+      dataSize += 1;
+      dataBuffer.push(data1);
+    }
+    if(dataSize >= ITERATIONS)
+    {
+      writeToFile(avgRPCData,"compiled/rpc_avg");
+      writeToFile(stdRPCData,"compiled/rpc_std");
+      writeToFile(avgEventData,"compiled/event_avg");
+      writeToFile(stdEventData,"compiled/event_std");
+      console.log("done"); 
       return;
     }
   }
 
   if(usingRpc)
-    sendPingViaRPCMessage(calcDataSize());
+    sendPingViaRPCMessage(dataBuffer);
   else
-    sendPingViaEvent(calcDataSize());
+    sendPingViaEvent(dataBuffer);
 }
 
-async function clientConnected() 
+async function clientConnected(success,data) 
 {
+  if(!success)
+    console.log(data);
+  else
+   {
   await console.log("Client has connected to Deepstream server");
-  await client.event.subscribe("response/event", pingReceived);
+  await client.event.subscribe("tddd96client/response/event", pingReceived);
   sendPing();
+   }
 }
 
 function main()
 {
-  client = deepstream("localhost:60020").login(clientConnected);
+  client = deepstream(settings.ip).login(settings.auth, clientConnected);
 }
 
 if(require.main === module) main();
